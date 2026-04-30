@@ -1,38 +1,33 @@
 {
-  "schemaVersion": 1,
-  "id": "${mod_id}",
-  "version": "${mod_version}",
-  "name": "${mod_name}",
-  "description": "${mod_description}",
-  "authors": [
-    "bunnyi116"
-  ],
-  "contact": {
-    "homepage": "${mod_homepage}",
-    "sources": "${mod_sources}"
-  },
-  "license": "",
-  "icon": "assets/${mod_id}/icon.png",
-  "environment": "client",
-  "entrypoints": {
-    "main": [
-      "com.github.bunnyi116.bedrockminer.BedrockMiner"
-    ]
-  },
-  "mixins": [
-    "bedrockminer.mixins.json"
-  ],
-  "depends": {
-    "fabricloader": ">=${loader_version}",
-    "minecraft": "${minecraft_dependency}"
-  },
-  "suggests": {
-    "another-mod": "*"
-  },
-  "accessWidener": "${accessWidener}",
-  "custom": {
-    "modmenu": {
-      "parent": "${mod_wrapper_id}"
-    }
-  }
+	"schemaVersion": 1,
+	"id": "bedrockminer",
+	"version": "${version}",
+	"name": "Bedrock Miner",
+	"description": "Client mod to mine bedrock without Haste.",
+	"authors": [
+		"bunnyi116",
+		"Nour"
+	],
+	"contact": {
+		"homepage": "https://github.com/bunnyi116/fabric-bedrock-miner",
+		"sources": "https://github.com/bunnyi116/fabric-bedrock-miner"
+	},
+	"license": "AGPL-3.0",
+	"icon": "assets/bedrockminer/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"com.github.bunnyi116.bedrockminer.BedrockMiner"
+		]
+	},
+	"mixins": [
+		"bedrockminer.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"accessWidener": "bedrockminer.accesswidener"
 }

@@ -31,11 +31,7 @@ public class PlayerLookUtils {
     }
 
     public static ServerboundMovePlayerPacket getLookPacket(float yaw, float pitch) {
-        //#if MC > 12101
         return new ServerboundMovePlayerPacket.Rot(yaw, pitch, player.onGround(), false);
-        //#else
-        //$$ return new ServerboundMovePlayerPacket.Rot(yaw, pitch, player.onGround());
-        //#endif
     }
 
     public static void sendLookPacket(ServerboundMovePlayerPacket packet) {

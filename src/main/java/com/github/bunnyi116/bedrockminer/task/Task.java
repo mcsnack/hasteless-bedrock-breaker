@@ -256,7 +256,7 @@ public class Task {
         final BlockPos[] nearbyRedstoneTorch = TaskPlanTools.findPistonNearbyRedstoneTorch(planItem.piston.pos, world);
         for (final BlockPos pos : nearbyRedstoneTorch) {
             if (world.getBlockState(pos).getBlock() instanceof RedstoneTorchBlock) {
-                InteractionUtils.updateBlockBreakingProgress(pos);
+                InteractionUtils.instamineBlock(pos);
             }
         }
         debug("放置活塞");
@@ -454,19 +454,12 @@ public class Task {
                 recycledQueue.remove();
                 return;
             }
-            var instant = PlayerUtils.canInstantlyMineBlock(blockState);
-            if (!instant) {
-                this.requestPickaxe = true;
-                InventoryUtils.autoSwitch(blockState);
-            } else {
-                this.requestPickaxe = false;
-            }
-            InteractionUtils.updateBlockBreakingProgress(blockPos, false);
-            if (BlockUtils.isReplaceable(blockState)) {
+            // 切换工具仅用于本地破坏预测的视觉一致性, 实际破坏走 instamine 路径不依赖工具速度
+            InventoryUtils.autoSwitch(blockState);
+            this.requestPickaxe = false;
+            InteractionUtils.instamineBlock(blockPos);
+            if (BlockUtils.isReplaceable(world.getBlockState(blockPos))) {
                 recycledQueue.remove();
-            }
-            if (!instant && !recycledQueue.isEmpty()) {
-                this.tickOccupied();
             }
         } else {
             debug("任务物品回收已完成");
@@ -495,26 +488,20 @@ public class Task {
             this.executeModify = true;
             return;
         } else {
-            // 切换到工具
-            if (!PlayerUtils.canInstantlyMineBlock(world.getBlockState(planItem.piston.pos))) {
-                InventoryUtils.autoSwitch(world.getBlockState(planItem.piston.pos));
-                this.requestPickaxe = true;
-                this.setWait(TaskState.EXECUTE, 1);
-                return;
-            } else {
-                this.requestPickaxe = false;
-            }
+            // 切换到工具 (用于本地破坏延迟预测; 实际破坏走 instamine 路径不依赖工具速度)
+            InventoryUtils.autoSwitch(world.getBlockState(planItem.piston.pos));
+            this.requestPickaxe = false;
             // 打掉附近红石火把
             final BlockPos[] nearbyRedstoneTorch = TaskPlanTools.findPistonNearbyRedstoneTorch(planItem.piston.pos, world);
             for (final BlockPos pos : nearbyRedstoneTorch) {
                 if (world.getBlockState(pos).getBlock() instanceof RedstoneTorchBlock) {
-                    InteractionUtils.updateBlockBreakingProgress(pos);
+                    InteractionUtils.instamineBlock(pos);
                 }
             }
             if (world.getBlockState(planItem.redstoneTorch.pos).getBlock() instanceof RedstoneTorchBlock) {
-                InteractionUtils.updateBlockBreakingProgress(planItem.redstoneTorch.pos);
+                InteractionUtils.instamineBlock(planItem.redstoneTorch.pos);
             }
-            InteractionUtils.updateBlockBreakingProgress(planItem.piston.pos);
+            InteractionUtils.instamineBlock(planItem.piston.pos);
             InteractionUtils.placement(planItem.piston.pos, planItem.direction.getOpposite(), Items.PISTON, Items.STICKY_PISTON);
             this.addRecycled(planItem.piston.pos);
             if (this.executeModify) {
@@ -639,7 +626,7 @@ public class Task {
             BlockPos pos1 = pos.relative(direction);
             BlockPos pos2 = pos1.above();
             BlockState pistonState = world.getBlockState(pos1);
-            if (pistonState.getBlock() instanceof PistonBaseBlock && PlayerUtils.canInstantlyMineBlock(pistonState)) {
+            if (pistonState.getBlock() instanceof PistonBaseBlock) {
                 if (!TaskManager.getInstance().getActiveBlockTasks().isEmpty()) {
                     for (Task task : TaskManager.getInstance().getActiveBlockTasks()) {
                         if (task == null) continue;
@@ -649,10 +636,10 @@ public class Task {
                         }
                     }
                 }
-                InteractionUtils.updateBlockBreakingProgress(pos1, false);
+                InteractionUtils.instamineBlock(pos1);
             }
             BlockState pistonUpState = world.getBlockState(pos2);
-            if (pistonUpState.getBlock() instanceof PistonBaseBlock && PlayerUtils.canInstantlyMineBlock(pistonUpState)) {
+            if (pistonUpState.getBlock() instanceof PistonBaseBlock) {
                 if (!TaskManager.getInstance().getActiveBlockTasks().isEmpty()) {
                     for (Task task : TaskManager.getInstance().getActiveBlockTasks()) {
                         if (task == null) continue;
@@ -662,7 +649,7 @@ public class Task {
                         }
                     }
                 }
-                InteractionUtils.updateBlockBreakingProgress(pos2, false);
+                InteractionUtils.instamineBlock(pos2);
             }
         }
         if (TaskManager.getInstance().isBedrockMinerFeatureEnable()) {

@@ -24,7 +24,7 @@ import static com.github.bunnyi116.bedrockminer.BedrockMiner.*;
 
 @Environment(EnvType.CLIENT)
 public class InteractionUtils {
-    public static final float BREAKING_PROGRESS_MAX = 1.0F;
+    public static final float BREAKING_PROGRESS_MAX = 0.6F;
     private static BlockPos currentBreakingPos = new BlockPos(-1, -1, -1);
     private static float currentBreakingProgress;
     private static boolean breakingBlock;
@@ -125,6 +125,40 @@ public class InteractionUtils {
         updateBlockBreakingProgress(pos, true);
     }
 
+    /**
+     * Instamine a block by sending START_DESTROY_BLOCK and STOP_DESTROY_BLOCK packets back-to-back,
+     * regardless of the player's actual mining speed. The server treats this as a creative-style
+     * break for blocks where progress is nominally instant (pistons/torches/etc when bedrock-breaker
+     * exploits relax the check), so it works without Haste/Efficiency.
+     *
+     * Mirrors fabric-bedrock-miner's instamine path used by the Meteor addon reference.
+     */
+    public static void instamineBlock(BlockPos pos, Direction direction) {
+        if (world == null || player == null || networkHandler == null) return;
+        if (!world.getWorldBorder().isWithinBounds(pos)) return;
+        BlockState blockState = world.getBlockState(pos);
+        if (blockState.isAir()) return;
+
+        NetworkUtils.sendSequencedPacket((sequence) ->
+            new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, pos, direction, sequence)
+        );
+        NetworkUtils.sendSequencedPacket((sequence) ->
+            new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, pos, direction, sequence)
+        );
+
+        // Local prediction: destroy client-side immediately so subsequent placement in the
+        // same tick sees the block as gone.
+        if (interactionManager != null) {
+            interactionManager.destroyBlock(pos);
+        }
+
+        player.swing(InteractionHand.MAIN_HAND);
+    }
+
+    public static void instamineBlock(BlockPos pos) {
+        instamineBlock(pos, PlayerUtils.getClosestFace(pos));
+    }
+
     public static void resetBreaking() {
         breakingTicks = 0;
         breakingTickMax = 20;
@@ -171,8 +205,8 @@ public class InteractionUtils {
                 default -> player.getYRot();
             };
             var pitch = switch (facing) {
-                case UP -> 90F;
-                case DOWN -> -90F;
+                case UP -> 89F;
+                case DOWN -> -89F;
                 default -> 0F;
             };
             PlayerLookUtils.sendLookPacket(yaw, pitch);

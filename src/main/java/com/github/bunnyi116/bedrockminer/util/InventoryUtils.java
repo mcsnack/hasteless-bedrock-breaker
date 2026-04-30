@@ -5,7 +5,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -17,27 +17,15 @@ import static com.github.bunnyi116.bedrockminer.BedrockMiner.*;
 public class InventoryUtils {
 
     public static NonNullList<ItemStack> getMainStacks(Inventory playerInventory) {
-        //#if MC > 12104
         return playerInventory.getNonEquipmentItems();
-        //#else
-        //$$ return playerInventory.items;
-        //#endif
     }
 
     public static int getSelectedSlot() {
-        //#if MC > 12104
         return player.getInventory().getSelectedSlot();
-        //#else
-        //$$ return player.getInventory().selected;
-        //#endif
     }
 
     public static void setSelectedSlot(int slot) {
-        //#if MC > 12104
         player.getInventory().setSelectedSlot(slot);
-        //#else
-        //$$ player.getInventory().selected = slot;
-        //#endif
     }
 
     public static void autoSwitch(Block block) {
@@ -74,11 +62,11 @@ public class InventoryUtils {
             if (sourceSlot == hotbarIndex) {   // 同一个槽位
                 return;
             }
-            interactionManager.handleContainerInput(
+            interactionManager.handleInventoryMouseClick(
                     player.containerMenu.containerId,   // 当前容器ID
                     sourceSlot,                          // 源槽编号
                     hotbarIndex,                         // 目标快捷栏编号（0–8）
-                    ContainerInput.SWAP,                     // 交换动作
+                    ClickType.SWAP,                      // 交换动作
                     player
             );
         }

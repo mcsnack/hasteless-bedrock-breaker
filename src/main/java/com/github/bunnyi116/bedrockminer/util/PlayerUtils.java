@@ -54,7 +54,6 @@ public class PlayerUtils {
         double blockPosX = blockPos.getX();
         double blockPosY = blockPos.getY();
         double blockPosZ = blockPos.getZ();
-        //#if MC >= 12005
         double distance = getBlockInteractionRange() + additionalRange;
         double eyePosX = player.getX();
         double eyePosY = player.getEyeY();
@@ -63,38 +62,15 @@ public class PlayerUtils {
         double dy = Math.max(Math.max(blockPosY - eyePosY, eyePosY - (blockPosY + 1)), 0);
         double dz = Math.max(Math.max(blockPosZ - eyePosZ, eyePosZ - (blockPosZ + 1)), 0);
         return (dx * dx + dy * dy + dz * dz) < (distance * distance);
-        //#elseif MC >= 11900
-        //$$ double distance = Math.max(getBlockInteractionRange(), 5) + additionalRange;
-        //$$ double eyePosX = player.getX();
-        //$$ double eyePosY = player.getEyeY();
-        //$$ double eyePosZ = player.getZ();
-        //$$ double dx = eyePosX - (blockPosX + 0.5);
-        //$$ double dy = eyePosY - (blockPosY + 0.5);
-        //$$ double dz = eyePosZ - (blockPosZ + 0.5);
-        //$$ return (dx * dx + dy * dy + dz * dz) < (distance * distance);
-        //#else
-        //$$ // MC <= 1.18.2
-        //$$ double distance = Math.max(getBlockInteractionRange(), 5) + additionalRange;
-        //$$ double dx = player.getX() - (blockPosX + 0.5);
-        //$$ double dy = player.getY() - (blockPosY + 0.5) + 1.5;
-        //$$ double dz = player.getZ() - (blockPosZ + 0.5);
-        //$$ return (dx * dx + dy * dy + dz * dz) < (distance * distance);
-        //#endif
     }
 
     /**
      * 获取方块交互范围
      */
     public static double getBlockInteractionRange() {
-        //#if MC>=12005
         if (Minecraft.getInstance().player != null) {
             return Minecraft.getInstance().player.blockInteractionRange();
         }
-        //#else
-        //$$ if (interactionManager != null) {
-        //$$    return interactionManager.getPickRange();
-        //$$ }
-        //#endif
         return 4.5F;
     }
 
@@ -135,7 +111,6 @@ public class PlayerUtils {
 
 
         // 根据工具的"效率"附魔增加破坏速度
-        //#if MC > 12006
         if (f > 1.0F) {
             for (var enchantment : itemStack.getEnchantments().keySet()) {
                 var enchantmentKey = enchantment.unwrapKey();
@@ -149,14 +124,6 @@ public class PlayerUtils {
                 }
             }
         }
-        //#else
-        //$$ if (f > 1.0F) {
-        //$$     int level = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.EFFICIENCY, itemStack);
-        //$$     if (level > 0 && !itemStack.isEmpty()) {
-        //$$         f += (float)(level * level + 1);
-        //$$     }
-        //$$ }
-        //#endif
 
         // 根据玩家"急迫"状态效果增加破坏速度
         if (MobEffectUtil.hasDigSpeed(player)) {
@@ -175,7 +142,6 @@ public class PlayerUtils {
         }
 
         // 如果玩家在水中并且没有"水下速掘"附魔，则减缓破坏速度
-        //#if MC > 12006
         f *= (float) player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED);
         if (player.isEyeInFluid(FluidTags.WATER)) {
             var submergedMiningSpeed = player.getAttribute(Attributes.SUBMERGED_MINING_SPEED);
@@ -183,11 +149,6 @@ public class PlayerUtils {
                 f *= (float) submergedMiningSpeed.getValue();
             }
         }
-        //#else
-        //$$ if (player.isEyeInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)) {
-        //$$     f /= 5.0F;
-        //$$ }
-        //#endif
 
         // 如果玩家不在地面上，则减缓破坏速度
         if (!player.onGround()) {

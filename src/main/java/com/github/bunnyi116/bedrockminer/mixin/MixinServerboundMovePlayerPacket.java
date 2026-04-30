@@ -8,21 +8,13 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(value = ServerboundMovePlayerPacket.class, priority = 1010)
 public class MixinServerboundMovePlayerPacket {
-    //#if MC > 12101
     @ModifyVariable(method = "<init>(DDDFFZZZZ)V", at = @At("HEAD"), ordinal = 0, argsOnly = true)
-    //#else
-    //$$ @ModifyVariable(method = "<init>(DDDFFZZZ)V", at = @At("HEAD"), ordinal = 0, argsOnly = true)
-    //#endif
     private static float modifyLookYaw(float yaw) {
         return PlayerLookUtils.getYaw(yaw);
     }
 
 
-    //#if MC > 12101
     @ModifyVariable(method = "<init>(DDDFFZZZZ)V", at = @At("HEAD"), ordinal = 1, argsOnly = true)
-    //#else
-    //$$ @ModifyVariable(method = "<init>(DDDFFZZZ)V", at = @At("HEAD"), ordinal = 1, argsOnly = true)
-    //#endif
     private static float modifyLookPitch(float pitch) {
         return PlayerLookUtils.getPitch(pitch);
     }
