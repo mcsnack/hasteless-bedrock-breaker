@@ -49,7 +49,7 @@ public class TaskManager {
         if (!isAllowExecutionEnvironment(activeBlockTasks.isEmpty())) {
             return;
         }
-        // 每40TICK进行排序一次
+        // Sort once every 40 ticks
         if (!this.pendingBlockTasks.isEmpty() || !this.activeBlockTasks.isEmpty()) {
             if (sortCount > 0) {
                 sortCount--;
@@ -57,13 +57,13 @@ public class TaskManager {
                 sortCount = 40;
                 if (this.pendingBlockTasks.size() > 1) {
                     this.pendingBlockTasks.sort((a1, a2) -> {
-                        // 首先按Y坐标降序排列（高的优先）
+                        // First sort by Y coordinate descending (higher priority)
                         int dy = a2.pos.getY() - a1.pos.getY();
-                        // 如果Y坐标不同，直接返回比较结果
+                        // If Y coordinates differ, return comparison result
                         if (dy != 0) {
                             return dy;
                         }
-                        // 如果Y坐标相同，按水平距离升序排列（近的优先）
+                        // If Y coordinates are the same, sort by horizontal distance ascending (closer priority)
                         double dist1 = PlayerUtils.getHorizontalDistanceToPlayer(a1.pos);
                         double dist2 = PlayerUtils.getHorizontalDistanceToPlayer(a2.pos);
                         return Double.compare(dist1, dist2);
@@ -92,25 +92,32 @@ public class TaskManager {
                     }
                 }
             }
-            int resetCountMax = 20;
+            int resetCountMax = Config.getInstance().outOfRangeCooldownTicks;
             Iterator<Task> iterator = this.activeBlockTasks.iterator();
             while (iterator.hasNext()) {
                 Task currentTask = iterator.next();
                 if (currentTask == null) continue;
                 if (currentTask.world != world || !currentTask.canInteractWithBlockAt()) {
-                    MessageUtils.setOverlayMessage(Component.literal("远离当前正在处理的方块位置, 冷却时间剩余: " + (resetCountMax - currentTask.active)));
-                    continue;
-                }
-                if (currentTask.active >= resetCountMax) {
-                    if (this.pendingBlockTasks.size() > 1 || !this.pendingRegionTasks.isEmpty() || !Config.getInstance().ranges.isEmpty()) {
+                    if (resetCountMax > 0) {
+                        currentTask.active++;
+                        if (currentTask.active >= resetCountMax) {
+                            // Cooldown expired: move to cache so a new task can be picked
+                            this.cacheBlockTasks.add(currentTask);
+                            iterator.remove();
+                            currentTask.active = 0;
+                        } else {
+                            MessageUtils.setOverlayMessage(Component.literal("Moved away from current block, cooldown remaining: " + (resetCountMax - currentTask.active)));
+                        }
+                    } else {
+                        // Cooldown disabled: immediately move to cache
                         this.cacheBlockTasks.add(currentTask);
                         iterator.remove();
                         currentTask.active = 0;
-                        continue;
                     }
-                } else {
-                    currentTask.active++;
+                    continue;
                 }
+                // In range: reset the out-of-range counter so a previous excursion doesn't carry over
+                currentTask.active = 0;
                 processing = true;
                 if (PlayerLookUtils.getTask() != null && !activeBlockTasks.contains(PlayerLookUtils.getTask())) {
                     PlayerLookUtils.reset();
@@ -157,7 +164,7 @@ public class TaskManager {
             }
         }
 
-        // 先检查缓存里面是否有任务存在
+        // First check if there are cached tasks
         if (!this.cacheBlockTasks.isEmpty()) {
             Iterator<Task> iterator = this.cacheBlockTasks.iterator();
             while (iterator.hasNext()) {
@@ -188,7 +195,7 @@ public class TaskManager {
         double playerBlockInteractionRange = PlayerUtils.getBlockInteractionRange();
         int radius = (int) Math.ceil(playerBlockInteractionRange);
 
-        // 没有正在处理的任务, 准备选择一个新的任务
+        // No active tasks, prepare to select a new one
         Iterator<Task> iterator = this.pendingBlockTasks.iterator();
         while (iterator.hasNext() && this.activeBlockTasks.size() < Config.getInstance().limitMax) {
             Task task = iterator.next();
@@ -218,9 +225,9 @@ public class TaskManager {
             }
         }
 
-        // 没有正在处理的任务, 准备选择一个新的任务
+        // No active tasks, prepare to select a new one
         if (this.activeBlockTasks.size() < Config.getInstance().limitMax) {
-            // 组合迭代器(避免创建新的数组, 浪费内存)
+            // Combined iterator (avoid creating new arrays and wasting memory)
             final CombinedIterator<TaskRegion> iterator2 = new CombinedIterator<>(Config.getInstance().ranges, pendingRegionTasks);
             while (iterator2.hasNext()) {
                 TaskRegion range = iterator2.next();
@@ -286,9 +293,8 @@ public class TaskManager {
         if (InventoryUtils.getInventoryItemCount(Items.REDSTONE_TORCH) < 1) {
             msg = FAIL_MISSING_REDSTONETORCH;
         }
-        if (!InventoryUtils.canInstantlyMinePiston()) {
-            msg = FAIL_MISSING_INSTANTMINE;
-        }
+        // The instamine path sends START+STOP packets directly and does not depend on
+        // vanilla mining speed, so no Efficiency/Haste check is needed here.
         if (msg != null) {
             if (setOverlayMessage) {
                 MessageUtils.setOverlayMessage(msg);
@@ -311,7 +317,7 @@ public class TaskManager {
         if (!Config.getInstance().isAllowBlock(block)) {
             return;
         }
-        if (Config.getInstance().isFloorsBlacklist(pos)) {  // 楼层限制
+        if (Config.getInstance().isFloorsBlacklist(pos)) {  // Floor restriction
             String msg = FLOOR_BLACK_LIST_WARN.getString().replace("(#floor#)", String.valueOf(pos.getY()));
             MessageUtils.setOverlayMessage(Component.literal(msg));
             return;
@@ -388,12 +394,12 @@ public class TaskManager {
             this.removeAll();
             this.setRunning(false);
         } else {
-            if (gameMode.isCreative()) { // 仅生存模式开启
+            if (gameMode.isCreative()) { // Only enable in survival mode
                 MessageUtils.addMessage(FAIL_MISSING_SURVIVAL);
                 return;
             }
             this.setRunning(true);
-            if (!client.isLocalServer()) {   // 服务器开启时发送警告提示
+            if (!client.isLocalServer()) {   // Send warning when on server
                 MessageUtils.addMessage(WARN_MULTIPLAYER);
             }
         }
@@ -466,7 +472,7 @@ public class TaskManager {
         return INSTANCE;
     }
 
-    //region 为 BiliXWhite/litematica-printer 提供兼容方法 (作者更新不及时)
+    //region Compatibility methods for BiliXWhite/litematica-printer (author does not update frequently)
     public static void addTask(Block block, BlockPos pos, ClientLevel world) {
         TaskManager.getInstance().addBlockTask(world, pos, block);
     }

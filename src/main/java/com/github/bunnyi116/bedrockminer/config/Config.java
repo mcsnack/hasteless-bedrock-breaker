@@ -20,6 +20,10 @@ public class Config {
     public List<TaskRegion> ranges = new ArrayList<>();
     public List<String> blockWhitelist = getDefaultBlockWhitelist();
     public int limitMax = 1;
+    /** Ticks to wait while out of range before cycling to a different task. 0 = immediate. */
+    public int outOfRangeCooldownTicks = 20;
+    /** Override for block interaction range (in blocks). 0 = use vanilla (typically 4.5). Higher values require a separate reach-extension mod to actually take effect server-side. */
+    public double interactionRangeOverride = 0.0;
 
 
     public transient List<String> blockBlacklistServer = getDefaultBlockBlacklistServer();
@@ -30,31 +34,31 @@ public class Config {
 
     public static List<String> getDefaultBlockWhitelist() {
         var list = new ArrayList<String>();
-        list.add(BlockUtils.getKeyString(Blocks.BEDROCK));                  // 基岩
-        // 防误触，取消以下默认白名单
-        // list.addTask(BlockUtils.getId(Blocks.END_PORTAL));               // 末地传送门
-        // list.addTask(BlockUtils.getId(Blocks.END_PORTAL_FRAME));         // 末地传送门-框架
-        // list.addTask(BlockUtils.getId(Blocks.END_GATEWAY));              // 末地折跃门
+        list.add(BlockUtils.getKeyString(Blocks.BEDROCK));                  // bedrock
+        // Disabled by default to prevent accidental destruction
+        // list.addTask(BlockUtils.getId(Blocks.END_PORTAL));               // end portal
+        // list.addTask(BlockUtils.getId(Blocks.END_PORTAL_FRAME));         // end portal frame
+        // list.addTask(BlockUtils.getId(Blocks.END_GATEWAY));              // end gateway
         return list;
     }
 
     public static List<String> getDefaultBlockBlacklistServer() {
-        // 默认方块黑名单 (用于限制的服务器, 与自定义黑名单分离)
+        // Default block blacklist (applied on remote servers, separate from the user blacklist)
         var list = new ArrayList<String>();
-        list.add(BlockUtils.getKeyString(Blocks.BARRIER));                    // 屏障
-        list.add(BlockUtils.getKeyString(Blocks.COMMAND_BLOCK));              // 普通命令方块
-        list.add(BlockUtils.getKeyString(Blocks.CHAIN_COMMAND_BLOCK));        // 连锁型命令方块
-        list.add(BlockUtils.getKeyString(Blocks.REPEATING_COMMAND_BLOCK));    // 循环型命令方块
-        list.add(BlockUtils.getKeyString(Blocks.STRUCTURE_VOID));             // 结构空位
-        list.add(BlockUtils.getKeyString(Blocks.STRUCTURE_BLOCK));            // 结构方块
-        list.add(BlockUtils.getKeyString(Blocks.JIGSAW));                     // 拼图方块
+        list.add(BlockUtils.getKeyString(Blocks.BARRIER));                    // barrier
+        list.add(BlockUtils.getKeyString(Blocks.COMMAND_BLOCK));              // command block
+        list.add(BlockUtils.getKeyString(Blocks.CHAIN_COMMAND_BLOCK));        // chain command block
+        list.add(BlockUtils.getKeyString(Blocks.REPEATING_COMMAND_BLOCK));    // repeating command block
+        list.add(BlockUtils.getKeyString(Blocks.STRUCTURE_VOID));             // structure void
+        list.add(BlockUtils.getKeyString(Blocks.STRUCTURE_BLOCK));            // structure block
+        list.add(BlockUtils.getKeyString(Blocks.JIGSAW));                     // jigsaw block
         return list;
     }
 
 
     public boolean isAllowBlock(Block block) {
         var mc = Minecraft.getInstance();
-        // 方块黑名单检查(服务器)
+        // Server-side blacklist check
         if (!mc.isLocalServer()) {
             for (var defaultBlockBlack : blockBlacklistServer) {
                 if (BlockUtils.getKeyString(block).equals(defaultBlockBlack)) {
@@ -62,7 +66,7 @@ public class Config {
                 }
             }
         }
-        // 方块白名单检查(用户自定义)
+        // User-defined whitelist check
         for (var blockBlack : blockWhitelist) {
             if (BlockUtils.getKeyString(block).equals(blockBlack)) {
                 return true;
@@ -72,7 +76,7 @@ public class Config {
     }
 
     public boolean isFloorsBlacklist(BlockPos pos) {
-        if (!floorsBlacklist.isEmpty()) {  // 楼层限制
+        if (!floorsBlacklist.isEmpty()) {  // Floor restriction
             return floorsBlacklist.contains(pos.getY());
         }
         return false;

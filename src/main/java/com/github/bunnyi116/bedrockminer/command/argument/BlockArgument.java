@@ -24,7 +24,7 @@ public class BlockArgument implements ArgumentType<Block[]> {
     private static final DynamicCommandExceptionType INVALID_STRING_EXCEPTION = new DynamicCommandExceptionType(input
             -> Component.literal(I18n.COMMAND_EXCEPTION_INVALID_STRING.getString().replace("#input#", input.toString())));
 
-    private static final Collection<String> EXAMPLES = Arrays.asList("Stone", "Bedrock", "石头", "基岩");
+    private static final Collection<String> EXAMPLES = Arrays.asList("Stone", "Bedrock");
 
     private @Nullable Predicate<Block> filter;
 

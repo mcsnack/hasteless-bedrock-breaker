@@ -21,7 +21,7 @@ public class BedrockMiner implements ModInitializer  {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
     public static final boolean TEST = false;
 
-    // 常用游戏变量(通过 mixin 从 MultiPlayerGameMode 更新)
+    // Common game variables (refreshed via mixin from MultiPlayerGameMode)
     public static Minecraft client;
     public static ClientLevel world;
     public static LocalPlayer player;
@@ -35,7 +35,7 @@ public class BedrockMiner implements ModInitializer  {
     public void onInitialize() {
         initGameVariable();
         CommandManager.register();
-        Debug.alwaysWrite("模组初始化成功");
+        Debug.alwaysWrite("Mod initialized successfully");
     }
 
     public static void initGameVariable() {

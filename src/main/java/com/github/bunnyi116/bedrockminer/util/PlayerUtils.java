@@ -25,7 +25,7 @@ public class PlayerUtils {
     }
 
     /**
-     * 获取最近的面
+     * Returns the face of the target block closest to the player's eye.
      */
     public static Direction getClosestFace(BlockPos targetPos) {
         Vec3 playerPos = player.getEyePosition();
@@ -47,8 +47,8 @@ public class PlayerUtils {
     }
 
     /**
-     * 判断玩家是否位于可与指定方块交互的距离范围内。
-     * 用于检测破坏、放置或右键交互是否有效。
+     * Whether the player is within range to interact with the given block.
+     * Used to validate breaking, placement, and right-click interactions.
      */
     public static boolean canInteractWithBlockAt(BlockPos blockPos, double additionalRange) {
         double blockPosX = blockPos.getX();
@@ -65,9 +65,14 @@ public class PlayerUtils {
     }
 
     /**
-     * 获取方块交互范围
+     * Returns the player's block interaction range, honoring the configured override
+     * when set to a non-zero value.
      */
     public static double getBlockInteractionRange() {
+        double override = com.github.bunnyi116.bedrockminer.config.Config.getInstance().interactionRangeOverride;
+        if (override > 0.0) {
+            return override;
+        }
         if (Minecraft.getInstance().player != null) {
             return Minecraft.getInstance().player.blockInteractionRange();
         }
@@ -75,7 +80,7 @@ public class PlayerUtils {
     }
 
     /**
-     * 计算当前TICK方块破坏增量
+     * Compute the per-tick breaking-progress delta for the given block.
      */
     public static float calcBlockBreakingDelta(BlockState state, ItemStack itemStack) {
         float hardness = state.getBlock().defaultDestroyTime();
@@ -100,17 +105,17 @@ public class PlayerUtils {
     }
 
     /**
-     * 获取当前物品能够破坏指定方块的破坏速度.
+     * Returns the breaking speed of the given item against the given block.
      *
-     * @param blockState 要破坏的方块状态
-     * @param itemStack  使用工具/物品破坏方块
-     * @return 当前物品破坏该方块所需的时间（单位为 tick）
+     * @param blockState the block being broken
+     * @param itemStack  the tool/item being used
+     * @return effective breaking speed (per tick)
      */
     public static float getBlockBreakingSpeed(BlockState blockState, ItemStack itemStack) {
-        var f = itemStack.getDestroySpeed(blockState);  // 当前物品的破坏系数速度
+        var f = itemStack.getDestroySpeed(blockState);  // Base destroy speed of the current item
 
 
-        // 根据工具的"效率"附魔增加破坏速度
+        // Apply the tool's Efficiency enchantment
         if (f > 1.0F) {
             for (var enchantment : itemStack.getEnchantments().keySet()) {
                 var enchantmentKey = enchantment.unwrapKey();
@@ -125,12 +130,12 @@ public class PlayerUtils {
             }
         }
 
-        // 根据玩家"急迫"状态效果增加破坏速度
+        // Apply the Haste status effect
         if (MobEffectUtil.hasDigSpeed(player)) {
             f *= 1.0F + (float)(MobEffectUtil.getDigSpeedAmplification(player) + 1) * 0.2F;
         }
 
-        // 根据玩家"挖掘疲劳"状态效果减缓破坏速度
+        // Apply the Mining Fatigue status effect
         if (player.hasEffect(MobEffects.MINING_FATIGUE)) {
             float g = switch (Objects.requireNonNull(player.getEffect(MobEffects.MINING_FATIGUE)).getAmplifier()) {
                 case 0 -> 0.3F;
@@ -141,7 +146,7 @@ public class PlayerUtils {
             f *= g;
         }
 
-        // 如果玩家在水中并且没有"水下速掘"附魔，则减缓破坏速度
+        // Underwater: apply the submerged-mining-speed attribute (and Aqua Affinity)
         f *= (float) player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED);
         if (player.isEyeInFluid(FluidTags.WATER)) {
             var submergedMiningSpeed = player.getAttribute(Attributes.SUBMERGED_MINING_SPEED);
@@ -150,7 +155,7 @@ public class PlayerUtils {
             }
         }
 
-        // 如果玩家不在地面上，则减缓破坏速度
+        // Off-ground penalty
         if (!player.onGround()) {
             f /= 5.0F;
         }

@@ -78,7 +78,7 @@ public abstract class MixinMultiPlayerGameMode {
             }
             TaskManager.getInstance().tick();
         }
-        InteractionUtils.autoResetBreaking();    // 自动解除拦截玩家破坏机制，避免任务阻塞或玩家离开任务方块破坏范围
+        InteractionUtils.autoResetBreaking();    // Auto-release the break interception so tasks don't stall and the player can move out of range
     }
 
     @Unique

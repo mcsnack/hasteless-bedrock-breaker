@@ -13,6 +13,7 @@ import com.github.bunnyi116.bedrockminer.util.StringReaderUtils;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -39,7 +40,7 @@ public class TaskCommand extends CommandBase {
                         .then(argument("int", IntegerArgumentType.integer(1, 10))
                                 .executes(context -> {
                                     int limitMax = IntegerArgumentType.getInteger(context, "int");
-                                    MessageUtils.addMessage(Component.literal("任务同步执行限制最大值已设置为: " + limitMax));
+                                    MessageUtils.addMessage(Component.literal("Concurrent task limit set to: " + limitMax));
                                     Config.getInstance().limitMax = limitMax;
                                     Config.getInstance().save();
                                     return Command.SINGLE_SUCCESS;
@@ -57,6 +58,36 @@ public class TaskCommand extends CommandBase {
                                     }
                                     Config.getInstance().shortTsk = b;
                                     Config.getInstance().save();
+                                    return Command.SINGLE_SUCCESS;
+                                })
+                        )
+                )
+                .then(literal("outOfRangeCooldown")
+                        .then(argument("ticks", IntegerArgumentType.integer(0, 200))
+                                .executes(context -> {
+                                    int ticks = IntegerArgumentType.getInteger(context, "ticks");
+                                    Config.getInstance().outOfRangeCooldownTicks = ticks;
+                                    Config.getInstance().save();
+                                    if (ticks == 0) {
+                                        MessageUtils.addMessage(Component.literal("Out-of-range cooldown disabled (tasks cycle immediately)"));
+                                    } else {
+                                        MessageUtils.addMessage(Component.literal("Out-of-range cooldown set to " + ticks + " ticks"));
+                                    }
+                                    return Command.SINGLE_SUCCESS;
+                                })
+                        )
+                )
+                .then(literal("range")
+                        .then(argument("blocks", DoubleArgumentType.doubleArg(0.0, 100.0))
+                                .executes(context -> {
+                                    double blocks = DoubleArgumentType.getDouble(context, "blocks");
+                                    Config.getInstance().interactionRangeOverride = blocks;
+                                    Config.getInstance().save();
+                                    if (blocks <= 0.0) {
+                                        MessageUtils.addMessage(Component.literal("Interaction range override disabled (using vanilla)"));
+                                    } else {
+                                        MessageUtils.addMessage(Component.literal("Interaction range override set to " + blocks + " blocks" + (blocks > 6 ? ". (requires a reach mod for server-side effect)" : ".")));
+                                    }
                                     return Command.SINGLE_SUCCESS;
                                 })
                         )
@@ -117,7 +148,7 @@ public class TaskCommand extends CommandBase {
                                     if (range != null) {
                                         Config.getInstance().ranges.remove(range);
                                         Config.getInstance().save();
-                                        MessageUtils.addMessage(Component.literal("已成功删除: " + name));
+                                        MessageUtils.addMessage(Component.literal("Removed: " + name));
                                     }
                                     return Command.SINGLE_SUCCESS;
                                 })
@@ -147,7 +178,7 @@ public class TaskCommand extends CommandBase {
                 TaskRegion range = new TaskRegion(name, BedrockMiner.world, blockPos1, blockPos2);
                 ConfigManager.getInstance().getConfig().ranges.add(range);
                 ConfigManager.getInstance().getConfig().save();
-                MessageUtils.addMessage(Component.literal("已成功添加到配置文件: " + name));
+                MessageUtils.addMessage(Component.literal("Added to config: " + name));
             }
         } else {
             for (TaskRegion item : TaskManager.getInstance().getPendingRegionTasks()) {
@@ -159,7 +190,7 @@ public class TaskCommand extends CommandBase {
             if (b) {
                 TaskRegion range = new TaskRegion(name, BedrockMiner.world, blockPos1, blockPos2);
                 TaskManager.getInstance().getPendingRegionTasks().add(range);
-                MessageUtils.addMessage(Component.literal("已成功添加: " + name));
+                MessageUtils.addMessage(Component.literal("Added: " + name));
             }
         }
         return Command.SINGLE_SUCCESS;

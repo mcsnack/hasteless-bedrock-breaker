@@ -117,12 +117,12 @@ public class BlockPosArgumentType implements ArgumentType<BlockPos> {
         if (reader.canRead() && reader.peek() != ' ') {
             if (reader.peek() == '~') {
                 reader.skip();
-                // 偏移量
+                // Offset
                 int offset = 0;
                 if (reader.canRead() && isAllowedInteger(reader.peek())) {
                     offset = reader.readInt();
                 }
-                // 玩家位置
+                // Player position
                 LocalPlayer player = Minecraft.getInstance().player;
                 if (type == 0) {
                     return (player == null ? 0 : player.getBlockX()) + offset;

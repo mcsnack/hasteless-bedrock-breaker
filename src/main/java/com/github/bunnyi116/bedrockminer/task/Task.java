@@ -56,7 +56,7 @@ public class Task {
     public boolean executed;
     public boolean recycled;
     public boolean timeout;
-    private boolean tickOccupied;   // 当前TICK已被占用
+    private boolean tickOccupied;   // Current tick has been claimed
     private boolean requestPickaxe;
 
     public Task(ClientLevel world, Block block, BlockPos pos) {
@@ -93,7 +93,7 @@ public class Task {
 
     private void setModifyLook(TaskPlanItem blockInfo) {
         if (blockInfo != null) {
-            debug("修改视角");
+            debug("Adjust look");
             setModifyLook(blockInfo.facing);
             blockInfo.modify = true;
             this.tickOccupied();
@@ -112,12 +112,12 @@ public class Task {
     }
 
     public void tick() {
-        debug("开始");
-        this.tickOccupied = false;  // 重置状态
+        debug("Begin");
+        this.tickOccupied = false;  // Reset state
         if (this.currentState == TaskState.COMPLETE) {
-            debug("任务已完成");
+            debug("Task complete");
         } else {
-            this.lastState = this.currentState; // 先将现有状态记录（debug输出）
+            this.lastState = this.currentState; // Snapshot state for debug output
             if (this.tickTotalCount >= this.ticksTotalMax) {
                 this.currentState = TaskState.COMPLETE;
                 this.tickOccupied();
@@ -162,7 +162,7 @@ public class Task {
                         }
                         if (this.retryCount < this.retryCountMax) {
                             this.retryCount++;
-                            this.debug("任务物品回收已完成, 超时重试: %s", retryCount);
+                            this.debug("Recycling done; timeout retry: %s", retryCount);
                             this.currentState = TaskState.INITIALIZE;
                         } else {
                             this.currentState = TaskState.COMPLETE;
@@ -170,32 +170,32 @@ public class Task {
                         }
                         break;
                     case TIMEOUT:
-                        debug("任务已超时");
+                        debug("Task timed out");
                         currentState = TaskState.RETRY;
                         break;
                     case FAIL:
-                        debug("任务已失败");
+                        debug("Task failed");
                         currentState = TaskState.RETRY;
                         break;
                     case RECYCLED_ITEMS:
                         this.recycledItems();
                         break;
                     case COMPLETE:
-                        debug("任务已完成");
+                        debug("Task complete");
                         break;
                 }
-                if (this.lastState == this.currentState) {  // 开始状态与结束状态一致, 避免无意义的内循环
-                    debug("状态一致，无需内部循环");
+                if (this.lastState == this.currentState) {  // No state change — avoid an empty inner loop
+                    debug("State unchanged; no inner loop needed");
                     break;
                 }
                 if (this.tickOccupied) {
-                    debug("独占TICK运行");
+                    debug("Tick claimed exclusively");
                     break;
                 }
                 ++tickInternalCount;
             }
         }
-        debug("结束\r\n");
+        debug("End\r\n");
         ++tickTotalCount;
     }
 
@@ -215,7 +215,7 @@ public class Task {
             this.currentState = TaskState.FIND;
             return;
         }
-        debug("红石火把");
+        debug("Redstone torch");
         BlockState placeBlockState;
         if (planItem.redstoneTorch.facing.getAxis().isVertical()) {
             placeBlockState = Blocks.REDSTONE_TORCH.defaultBlockState();
@@ -252,14 +252,14 @@ public class Task {
             this.currentState = TaskState.FIND;
             return;
         }
-        // 打掉附近红石火把(范围处理时候, 不打掉可能会卡主任务失败一直尝试)
+        // Break nearby redstone torches (in region mode this prevents tasks from getting stuck retrying)
         final BlockPos[] nearbyRedstoneTorch = TaskPlanTools.findPistonNearbyRedstoneTorch(planItem.piston.pos, world);
         for (final BlockPos pos : nearbyRedstoneTorch) {
             if (world.getBlockState(pos).getBlock() instanceof RedstoneTorchBlock) {
                 InteractionUtils.instamineBlock(pos);
             }
         }
-        debug("放置活塞");
+        debug("Place piston");
         BlockState placeBlockState = Blocks.PISTON.defaultBlockState().setValue(PistonBaseBlock.FACING, planItem.piston.facing);
         if (InteractionUtils.canPlace(world, planItem.piston.pos, placeBlockState)) {
             if (planItem.piston.isNeedModify() && !planItem.piston.modify) {
@@ -287,7 +287,7 @@ public class Task {
 
     private void find() {
         if (this.planItem == null) {
-            debug("查找方案");
+            debug("Find plan");
             for (TaskPlan item : planItems) {
                 BlockState slimeBlockState = world.getBlockState(item.slimeBlock.pos);
                 if (item.canInteractWithBlockAt()) {
@@ -325,8 +325,8 @@ public class Task {
                     }
                 }
                 final BlockState redstoneTorchState = world.getBlockState(item.redstoneTorch.pos);
-                if (!BlockUtils.isReplaceable(redstoneTorchState)) {  // 如果该位置已存在方块
-                    // 当前位置方块类型
+                if (!BlockUtils.isReplaceable(redstoneTorchState)) {  // A block already exists here
+                    // Block type at this position
                     if (!(redstoneTorchState.getBlock() instanceof RedstoneTorchBlock
                             || redstoneTorchState.getBlock() instanceof RedstoneWallTorchBlock
                     )) {
@@ -337,11 +337,11 @@ public class Task {
                     continue;
                 }
                 if (InteractionUtils.canPlace(world, item.slimeBlock.pos, Blocks.SLIME_BLOCK.defaultBlockState())
-                        || BlockUtils.sideCoversSmallSquare(item.slimeBlock.pos, item.slimeBlock.facing)) {// 特殊放置方案类型1, 需要检查目标方块是否能能被……充
+                        || BlockUtils.sideCoversSmallSquare(item.slimeBlock.pos, item.slimeBlock.facing)) {// Special plan type 1: target must conduct redstone
                     if (item.redstoneTorch.type == 1 && !world.getBlockState(pos).isRedstoneConductor(world, pos)) {
                         continue;
                     }
-                    // 如果需要放置底座, 检查粘液块是否充足
+                    // If a base needs to be placed, check that we have slime blocks
                     if (BlockUtils.isReplaceable(world.getBlockState(item.slimeBlock.pos))
                             && InventoryUtils.getInventoryItemCount(Items.SLIME_BLOCK) < 1) {
 //                        MessageUtils.setOverlayMessage(FAIL_MISSING_SLIME);
@@ -418,7 +418,10 @@ public class Task {
                             }
                         }
                     }
-                    if (TaskManager.getInstance().isBedrockMinerFeatureEnable() && item.redstoneTorch.type == 1) {
+                    // Type-1 plans (torch directly below target, powering it via redstone conduction)
+                    // require the target itself to be a redstone conductor. Bedrock is, so this is valid.
+                    if (item.redstoneTorch.type == 1
+                            && !world.getBlockState(pos).isRedstoneConductor(world, pos)) {
                         continue;
                     }
                     if (b) {
@@ -432,11 +435,11 @@ public class Task {
             this.currentState = TaskState.FAIL;
             MessageUtils.setOverlayMessage(Component.literal(I18n.HANDLE_SEEK.getString().replace("%BlockPos%", pos.toShortString())));
         } else {
-            this.debug("目标: %s", pos);
-            this.debug("方案: %s", this.planItem.direction);
-            this.debug("活塞: %s", this.planItem.piston);
-            this.debug("底座: %s", this.planItem.slimeBlock);
-            this.debug("红石火把: %s", this.planItem.redstoneTorch);
+            this.debug("Target: %s", pos);
+            this.debug("Plan: %s", this.planItem.direction);
+            this.debug("Piston: %s", this.planItem.piston);
+            this.debug("Base: %s", this.planItem.slimeBlock);
+            this.debug("Redstone torch: %s", this.planItem.redstoneTorch);
             this.currentState = TaskState.WAIT_GAME_UPDATE;
         }
     }
@@ -449,12 +452,12 @@ public class Task {
                 return;
             }
             var blockState = world.getBlockState(blockPos);
-            debug("任务物品正在回收: (%s) --> %s", blockPos.toShortString(), blockState.getBlock().getName().getString());
+            debug("Recycling: (%s) --> %s", blockPos.toShortString(), blockState.getBlock().getName().getString());
             if (blockState.getBlock().defaultDestroyTime() < 0) {
                 recycledQueue.remove();
                 return;
             }
-            // 切换工具仅用于本地破坏预测的视觉一致性, 实际破坏走 instamine 路径不依赖工具速度
+            // Tool switch is only for client-side visual consistency; actual breaking goes through the instamine path and doesn't depend on tool speed
             InventoryUtils.autoSwitch(blockState);
             this.requestPickaxe = false;
             InteractionUtils.instamineBlock(blockPos);
@@ -462,7 +465,7 @@ public class Task {
                 recycledQueue.remove();
             }
         } else {
-            debug("任务物品回收已完成");
+            debug("Recycling complete");
             if (retry) {
                 currentState = TaskState.RETRY;
             } else {
@@ -476,9 +479,9 @@ public class Task {
         if (executed || player == null || planItem == null) {
             return;
         }
-        this.updateStates();    // 执行前强制再确认一下条件是否充足了
+        this.updateStates();    // Re-verify conditions before executing
         if (this.currentState != TaskState.EXECUTE) {
-            debug("条件不充足，等待更新");
+            debug("Conditions not met; waiting for update");
             this.currentState = TaskState.WAIT_GAME_UPDATE;
             this.tickOccupied();
             return;
@@ -488,10 +491,10 @@ public class Task {
             this.executeModify = true;
             return;
         } else {
-            // 切换到工具 (用于本地破坏延迟预测; 实际破坏走 instamine 路径不依赖工具速度)
+            // Switch to a tool (only for client-side breaking-progress prediction; actual breaking goes through the instamine path and doesn't depend on tool speed)
             InventoryUtils.autoSwitch(world.getBlockState(planItem.piston.pos));
             this.requestPickaxe = false;
-            // 打掉附近红石火把
+            // Break nearby redstone torches
             final BlockPos[] nearbyRedstoneTorch = TaskPlanTools.findPistonNearbyRedstoneTorch(planItem.piston.pos, world);
             for (final BlockPos pos : nearbyRedstoneTorch) {
                 if (world.getBlockState(pos).getBlock() instanceof RedstoneTorchBlock) {
@@ -518,45 +521,45 @@ public class Task {
         if (--this.tickWaitMax <= 0) {
             this.currentState = this.nextState == null ? TaskState.WAIT_GAME_UPDATE : this.nextState;
             this.tickWaitMax = 0;
-            this.debug("等待已结束, 状态设置为: %s", this.currentState);
+            this.debug("Wait done; state set to: %s", this.currentState);
         } else {
             ++this.ticksTotalMax;
             ++this.ticksTimeoutMax;
             this.tickOccupied();
-            this.debug("剩余等待TICK: %s", tickWaitMax);
+            this.debug("Wait ticks remaining: %s", tickWaitMax);
         }
     }
 
     private void updateStates() {
         if (!world.getBlockState(pos).is(block)) {
             this.currentState = TaskState.RECYCLED_ITEMS;
-            this.debugUpdateStates("目标不存在");
+            this.debugUpdateStates("Target no longer exists");
             this.tickOccupied();
             return;
         }
         if (this.planItem == null) {
             this.currentState = TaskState.FIND;
-            this.debugUpdateStates("没有正在执行的放置方案, 准备查找可执行方案");
+            this.debugUpdateStates("No active plan; searching for one");
             return;
         }
         if (world.getBlockState(planItem.piston.pos).is(Blocks.MOVING_PISTON)) {
-            this.debugUpdateStates("活塞正在移动");
+            this.debugUpdateStates("Piston is moving");
             this.tickOccupied();
             return;
         }
         if (!this.executed) {
-            debugUpdateStates("任务未执行过");
+            debugUpdateStates("Task not yet executed");
 
             if (!canInteractWithBlockAt()) {
-                this.debugUpdateStates("当前放置方案不在交互范围内, 准备重新选择任务");
+                this.debugUpdateStates("Current plan is out of interaction range; re-selecting");
                 this.currentState = TaskState.FIND;
                 this.tickOccupied();
                 return;
             }
 
-            // 活塞
+            // Piston
             if (BlockUtils.isReplaceable(world.getBlockState(this.planItem.piston.pos))) {
-                this.debugUpdateStates("[%s] [%s] 活塞未放置且该位置可放置物品,设置放置状态", this.planItem.piston.pos.toShortString(), this.planItem.piston.facing);
+                this.debugUpdateStates("[%s] [%s] Piston not placed and slot is replaceable; queueing place", this.planItem.piston.pos.toShortString(), this.planItem.piston.facing);
                 this.currentState = TaskState.PLACE_PISTON;
                 return;
             }
@@ -572,25 +575,25 @@ public class Task {
 
 //            if (world.getBlockState(this.planItem.piston.pos).getBlock() instanceof PistonBaseBlock) {
 //                if (world.getBlockState(this.planItem.piston.pos).get(PistonBaseBlock.FACING) != this.planItem.piston.facing) {
-//                    this.debugUpdateStates("[%s] [%s] 活塞已放置, 但放置方向不正确", this.planItem.piston.pos.toShortString(), this.planItem.piston.facing);
+//                    this.debugUpdateStates("[%s] [%s] Piston is placed but facing the wrong direction", this.planItem.piston.pos.toShortString(), this.planItem.piston.facing);
 //                    this.currentState = TaskState.FAIL;
 //                    return;
 //                }
 //            }
-            // 底座
+            // Base block
             if (BlockUtils.isReplaceable(world.getBlockState(this.planItem.slimeBlock.pos))) {
-                this.debugUpdateStates("[%s] [%s] 底座未放置且该位置可放置物品,设置放置状态", this.planItem.slimeBlock.pos.toShortString(), this.planItem.slimeBlock.facing);
+                this.debugUpdateStates("[%s] [%s] Base not placed and slot is replaceable; queueing place", this.planItem.slimeBlock.pos.toShortString(), this.planItem.slimeBlock.facing);
                 this.currentState = TaskState.PLACE_SLIME_BLOCK;
                 return;
             }
             if (!BlockUtils.sideCoversSmallSquare(this.planItem.slimeBlock.pos, this.planItem.slimeBlock.facing)) {
-                this.debugUpdateStates("[%s] [%s] 底座已放置, 但不是完整的方块", this.planItem.slimeBlock.pos.toShortString(), this.planItem.slimeBlock.facing);
+                this.debugUpdateStates("[%s] [%s] Base placed but not a full solid block", this.planItem.slimeBlock.pos.toShortString(), this.planItem.slimeBlock.facing);
                 this.currentState = TaskState.FAIL;
                 return;
             }
-            // 红石火把
+            // Redstone torch
             if (BlockUtils.isReplaceable(world.getBlockState(this.planItem.redstoneTorch.pos))) {
-                this.debugUpdateStates("[%s] [%s] 红石火把未放置且该位置可放置物品,设置放置状态", this.planItem.redstoneTorch.pos.toShortString(), this.planItem.redstoneTorch.facing);
+                this.debugUpdateStates("[%s] [%s] Redstone torch not placed and slot is replaceable; queueing place", this.planItem.redstoneTorch.pos.toShortString(), this.planItem.redstoneTorch.facing);
                 this.currentState = TaskState.PLACE_REDSTONE_TORCH;
                 return;
             }
@@ -604,18 +607,18 @@ public class Task {
 //                    b = true;
 //                }
 //                if (b) {
-//                    this.debugUpdateStates("[%s] [%s] 红石火把已放置, 但放置状态与方案不一致", this.planItem.redstoneTorch.pos.toShortString(), this.planItem.redstoneTorch.facing);
+//                    this.debugUpdateStates("[%s] [%s] Redstone torch placed but in a state that doesn't match the plan", this.planItem.redstoneTorch.pos.toShortString(), this.planItem.redstoneTorch.facing);
 //                    this.currentState = TaskState.FAIL;
 //                }
 //            }
             if (world.getBlockState(this.planItem.piston.pos).getBlock() instanceof PistonBaseBlock) {
                 if (world.getBlockState(this.planItem.piston.pos).hasProperty(PistonBaseBlock.EXTENDED)) {
-                    this.debugUpdateStates("[%s] [%s] 条件已充足, 准备开始尝试", this.planItem.piston.pos.toShortString(), this.planItem.piston.facing);
+                    this.debugUpdateStates("[%s] [%s] Conditions met; starting execute step", this.planItem.piston.pos.toShortString(), this.planItem.piston.facing);
                     this.currentState = TaskState.EXECUTE;
                     return;
                 }
             }
-            // 无法确认状态, 独占等待更新
+            // State undetermined; claim the tick and wait
             this.debugUpdateStates("？？？");
             this.tickOccupied();
         }
@@ -680,7 +683,7 @@ public class Task {
     }
 
     private void debugUpdateStates(String var1, Object... var2) {
-        Debug.write("[{}/{}] [{}:{}/{}] [{} -> {}] [状态更新] {}",
+        Debug.write("[{}/{}] [{}:{}/{}] [{} -> {}] [state-update] {}",
                 retryCount, retryCountMax,
                 tickTotalCount, tickInternalCount, ticksTotalMax,
                 lastState, currentState,

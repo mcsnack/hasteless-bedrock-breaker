@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 任务方案查找器
+ * Task plan finder
  */
 public class TaskPlanTools {
     public static List<TaskPlan> findAllPossible(BlockPos targetPos) {
@@ -37,7 +37,7 @@ public class TaskPlanTools {
             if (pistonFacing.getAxis().isHorizontal()) {
                 continue;
             }
-            // 活塞臂在目标方块位置
+            // Piston head is at target block position
             final var pistonHeadPos = pistonPos.relative(pistonFacing);
             if (pistonHeadPos.equals(targetPos))
                 continue;
@@ -55,7 +55,7 @@ public class TaskPlanTools {
         final var list = new ArrayList<TaskPlanItem>();
         final var pistonHeadPos = pistonInfo.pos.relative(pistonInfo.facing);
 
-        // 活塞在目标方块上方，红石火把通过在目标方块下方，充能目标方块激活活塞
+        // Piston above target block, redstone torch below to power target and activate piston
         if (direction == Direction.UP) {
             final var redstoneTorchPos = targetPos.relative(direction.getOpposite());
             for (Direction redstoneTorchFacing : ConfigManager.getInstance().getConfig().redstoneTorchFacings) {
@@ -63,55 +63,57 @@ public class TaskPlanTools {
                 if (basePos.equals(pistonInfo.pos) || basePos.equals(pistonHeadPos))
                     continue;
 
-                // 红石火把无法倒置
+                // Redstone torch cannot be inverted
                 if (redstoneTorchFacing == Direction.DOWN)
                     continue;
 
-                // 设置排序等级
+                // Set sorting level
                 int level = switch (redstoneTorchFacing) {
                     case UP -> 0;
                     case NORTH, SOUTH, WEST, EAST -> 2;
                     default -> throw new IllegalStateException("Unexpected value: " + redstoneTorchFacing);
                 };
-                // 添加到方案
+                // Add to plan
                 list.add(new TaskPlanItem(1, redstoneTorchPos, redstoneTorchFacing, level));
             }
         }
 
         for (Direction redstoneTorchDirection : ConfigManager.getInstance().getConfig().redstoneTorchDirections) {
             final var redstoneTorchPos = pistonInfo.pos.relative(redstoneTorchDirection);
-            // 红石火把位置与活塞臂伸出的位置重叠
+            // Redstone torch position overlaps with piston arm extension
             if (pistonHeadPos.equals(redstoneTorchPos))
                 continue;
 
-            // 常规位置
+            // Regular position
             for (Direction redstoneTorchFacing : ConfigManager.getInstance().getConfig().redstoneTorchFacings) {
                 final var basePos = redstoneTorchPos.relative(redstoneTorchFacing.getOpposite());
 
-                // 过滤红石火把附在活塞上位置
+                // Filter out redstone torch attached to piston
                 if (basePos.equals(pistonInfo.pos) || basePos.equals(pistonHeadPos))
                     continue;
 
-                // 红石火把无法倒置
+                // Redstone torch cannot be inverted
                 if (redstoneTorchFacing == Direction.DOWN)
                     continue;
 
-                // 设置排序等级
+                // Set sorting level
                 int level = switch (redstoneTorchFacing) {
                     case UP -> 0;
                     case NORTH, SOUTH, WEST, EAST -> 2;
                     default -> throw new IllegalStateException("Unexpected value: " + redstoneTorchFacing);
                 };
 
-                // 添加到方案
-                if (!redstoneTorchPos.equals(targetPos)) {
+                // Add to plan
+                if (!redstoneTorchPos.equals(targetPos) && !redstoneTorchPos.equals(pistonHeadPos)) {
                     list.add(new TaskPlanItem(redstoneTorchPos, redstoneTorchFacing, level));
                 }
 
                 var redstoneTorchPosUp = redstoneTorchPos.above();
-                if (!redstoneTorchPosUp.equals(targetPos) && !redstoneTorchPosUp.equals(pistonInfo.pos)) {
-                    // 过滤红石火把附在活塞上位置
-                    final var baseUpPos = redstoneTorchPos.relative(redstoneTorchFacing.getOpposite());
+                if (!redstoneTorchPosUp.equals(targetPos)
+                        && !redstoneTorchPosUp.equals(pistonInfo.pos)
+                        && !redstoneTorchPosUp.equals(pistonHeadPos)) {
+                    // Filter out redstone torch attached to piston (use the up position's base)
+                    final var baseUpPos = redstoneTorchPosUp.relative(redstoneTorchFacing.getOpposite());
                     if (baseUpPos.equals(pistonInfo.pos) || baseUpPos.equals(pistonHeadPos))
                         continue;
                     list.add(new TaskPlanItem(redstoneTorchPosUp, redstoneTorchFacing, level + 1));
@@ -127,7 +129,7 @@ public class TaskPlanTools {
         return new TaskPlanItem(pos.relative(facing.getOpposite()), facing, facing.getAxis().isVertical() ? 0 : 1);
     }
 
-    // 查找活塞附近的火把
+    // Find redstone torches near piston
     public static BlockPos[] findPistonNearbyRedstoneTorch(BlockPos pistonPos, ClientLevel world) {
         List<BlockPos> list = new ArrayList<>();
         int range = 3;

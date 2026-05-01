@@ -111,7 +111,7 @@ public class PlayerLookUtils {
     }
 
     public static void tick() {
-        if (PlayerLookUtils.isModify()) {   // 自动重置视角
+        if (PlayerLookUtils.isModify()) {   // Auto-reset view
             if (PlayerLookUtils.ticks++ > 20) {
                 PlayerLookUtils.ticks = 0;
                 PlayerLookUtils.reset();

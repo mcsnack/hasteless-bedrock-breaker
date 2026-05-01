@@ -9,7 +9,6 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import static com.github.bunnyi116.bedrockminer.BedrockMiner.*;
@@ -33,16 +32,16 @@ public class InventoryUtils {
     }
 
     public static void autoSwitch(BlockState blockState) {
-        // 选取最优工具
+        // Pick the best tool
         float lastTime = -1;
         int lastSlot = -1;
         for (int i = 0; i < playerInventory.getContainerSize(); i++) {
             ItemStack itemStack = playerInventory.getItem(i);
-            // 检查耐久是否发起警告(剩余耐久<=检查值)
+            // Skip items whose remaining durability has hit the warning threshold
             if (InventoryUtils.isItemDamageWarning(itemStack, 5)) {
                 continue;
             }
-            // 选取最快工具
+            // Pick the fastest tool
             float blockBreakingTotalTime = PlayerUtils.getBlockBreakingSpeed(blockState, itemStack);
             if (lastTime == -1 || lastTime < blockBreakingTotalTime) {
                 lastTime = blockBreakingTotalTime;
@@ -59,14 +58,14 @@ public class InventoryUtils {
             return;
         }
         if (player.containerMenu == player.inventoryMenu) {
-            if (sourceSlot == hotbarIndex) {   // 同一个槽位
+            if (sourceSlot == hotbarIndex) {   // Same slot
                 return;
             }
             interactionManager.handleInventoryMouseClick(
-                    player.containerMenu.containerId,   // 当前容器ID
-                    sourceSlot,                          // 源槽编号
-                    hotbarIndex,                         // 目标快捷栏编号（0–8）
-                    ClickType.SWAP,                      // 交换动作
+                    player.containerMenu.containerId,   // Current container ID
+                    sourceSlot,                          // Source slot index
+                    hotbarIndex,                         // Target hotbar index (0-8)
+                    ClickType.SWAP,                      // Swap action
                     player
             );
         }
@@ -78,12 +77,12 @@ public class InventoryUtils {
         }
 
         Inventory playerInventory = player.getInventory();
-        // 容器菜单（containerMenu）背包菜单（playerScreenHandler)
+        // containerMenu is the open container; inventoryMenu is the player's own inventory screen
         if (player.containerMenu != player.inventoryMenu) {
-            return; // 确保当前不是打开箱子/界面时调用
+            return; // Only run when no chest/UI is open
         }
 
-        // 如果点的是快捷栏内槽位（0–8），直接切换选中即可
+        // If the slot is already on the hotbar (0-8), just select it
         if (Inventory.isHotbarSlot(slot)) {
             InventoryUtils.setSelectedSlot(slot);
             return;
@@ -102,13 +101,13 @@ public class InventoryUtils {
     }
 
     public static void switchToSlot(int slot) {
-        // 背包中没有指定的物品
+        // Item is in the inventory, not the hotbar
         if (Inventory.isHotbarSlot(slot)) {
             InventoryUtils.setSelectedSlot(slot);
         } else {
             pickFromInventory(player, interactionManager, slot);
         }
-        NetworkUtils.sendPacket(new ServerboundSetCarriedItemPacket(InventoryUtils.getSelectedSlot())); // 发送更新手持物品的数据包
+        NetworkUtils.sendPacket(new ServerboundSetCarriedItemPacket(InventoryUtils.getSelectedSlot())); // Notify the server of the held-item change
     }
 
     public static void switchToItem(int minDamage, Item... items) {
@@ -120,7 +119,7 @@ public class InventoryUtils {
             }
             for (Item item : items) {
                 if (stack.is(item)) {
-                    // 检查耐久是否发起警告(剩余耐久<=检查值)
+                    // Skip items whose remaining durability has hit the warning threshold
                     if (minDamage > 0 && InventoryUtils.isItemDamageWarning(stack, minDamage)) {
                         continue;
                     }
@@ -136,39 +135,24 @@ public class InventoryUtils {
     }
 
     /**
-     * 判断物品的耐久度是否小于等于给定的最小值
+     * Whether the item's remaining durability is at or below the given threshold.
      *
-     * @param itemStack 要检查耐久度的物品堆栈
-     * @param minDamage 最小的剩余耐久度
-     * @return 如果物品的剩余耐久度小于等于最小值则返回true，否则返回false
+     * @param itemStack item to check
+     * @param minDamage minimum remaining durability before this returns true
+     * @return true if remaining durability &lt;= minDamage; false if the item has no durability
      */
     public static boolean isItemDamageWarning(ItemStack itemStack, int minDamage) {
-        int damageMax = itemStack.getMaxDamage();   // 获取物品的最大耐久度
+        int damageMax = itemStack.getMaxDamage();   // Item's max durability
         if (damageMax > 0) {
-            int damage = itemStack.getDamageValue();     // 获取物品的已使用耐久度
-            int damageSurplus = damageMax - damage; // 计算物品的剩余耐久度
-            return damageSurplus <= minDamage;      // 如果剩余耐久度小于等于给定的最小值，则返回true
+            int damage = itemStack.getDamageValue();     // Already-used durability
+            int damageSurplus = damageMax - damage; // Remaining durability
+            return damageSurplus <= minDamage;      // True if remaining durability is at/below the threshold
         }
-        return false;   // 如果物品没有耐久度，则返回false
+        return false;   // Item has no durability
     }
 
-    /**
-     * 判断玩家是否可以瞬间破坏活塞方块
-     *
-     * @return 如果可以瞬间破坏活塞方块则返回true，否则返回false
-     */
-    public static boolean canInstantlyMinePiston() {
-        for (ItemStack stack : InventoryUtils.getMainStacks(playerInventory)) {
-            if (stack.isEmpty()) continue;
-            if (PlayerUtils.canInstantlyMineBlock(Blocks.PISTON.defaultBlockState(), stack)
-                    && !InventoryUtils.isItemDamageWarning(stack, 5)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
-    /*** 获取背包物品数量 ***/
+    /*** Count of an item in the inventory. ***/
     public static int getInventoryItemCount(Item item) {
         return playerInventory.countItem(item);
     }

@@ -36,28 +36,28 @@ public class ConfigManager {
         Gson gson = new Gson();
         try (Reader reader = new FileReader(file)) {
             config = gson.fromJson(reader, clazz);
-            Debug.alwaysWrite("已成功加载配置文件");
+            Debug.alwaysWrite("Config file loaded successfully");
         } catch (Exception e) {
             if (file.exists()) {
                 if (file.delete()) {
-                    Debug.alwaysWrite("无法加载配置,已成功删除配置文件");
+                    Debug.alwaysWrite("Failed to load config; deleted the config file");
                 } else {
-                    Debug.alwaysWrite("无法加载配置,删除配置文件失败");
+                    Debug.alwaysWrite("Failed to load config; could not delete the config file");
                 }
             } else {
-                Debug.alwaysWrite("找不到配置文件");
+                Debug.alwaysWrite("Config file not found");
             }
         }
 
         try {
             if (config == null) {
-                Debug.alwaysWrite("使用默认配置");
-                config = clazz.getDeclaredConstructor().newInstance(); // 使用反射创建实例
+                Debug.alwaysWrite("Using default config");
+                config = clazz.getDeclaredConstructor().newInstance(); // Create instance via reflection
             }
             save(file, config);
             return config;
         } catch (Exception e) {
-            Debug.alwaysWrite("无法创建默认配置");
+            Debug.alwaysWrite("Failed to create default config");
             return null;
         }
     }
@@ -67,7 +67,7 @@ public class ConfigManager {
         try (FileWriter writer = new FileWriter(file)) {
             gson.toJson(instance, writer);
         } catch (IOException e) {
-            Debug.alwaysWrite("无法保存配置文件");
+            Debug.alwaysWrite("Failed to save config file");
             e.printStackTrace();
         }
     }

@@ -49,9 +49,9 @@ public class InteractionUtils {
             return false;
         }
         BlockState blockState = world.getBlockState(pos);
-        if (gameMode.isCreative()) {    // 创造模式下
+        if (gameMode.isCreative()) {    // Creative mode
             setBreakingBlock(true);
-            NetworkUtils.sendSequencedPacket((sequence) -> { // 只需要发送START包，因为它是瞬间破坏的
+            NetworkUtils.sendSequencedPacket((sequence) -> { // Only START is needed because creative mining is instant
                 if (!blockState.isAir() && localPrediction) {
                     interactionManager.destroyBlock(pos);
                 }
@@ -166,7 +166,7 @@ public class InteractionUtils {
     }
 
     public static void autoResetBreaking() {
-        if (!breakingBlock && breakingTicks > 0) {  // 如果未在破坏, 但是破坏TICK已有累计, 先进行初始化
+        if (!breakingBlock && breakingTicks > 0) {  // Not breaking but ticks accumulated — reset state first
             resetBreaking();
         }
         if (breakingBlock && breakingTicks++ > breakingTickMax) {
@@ -195,7 +195,7 @@ public class InteractionUtils {
         if (items != null) {
             InventoryUtils.switchToItem(items);
         }
-        // 发送修改视角数据包
+        // Send a look-rotation packet so the placement is on the right face
         if (facing.getAxis().isVertical()) {
             var yaw = switch (facing) {
                 case SOUTH -> 180F;
@@ -211,9 +211,9 @@ public class InteractionUtils {
             };
             PlayerLookUtils.sendLookPacket(yaw, pitch);
         }
-        // 模拟选中位置(凭空放置)
+        // Simulate the click position (mid-air placement)
         var hitPos = blockPos.relative(facing.getOpposite());
-        Vec3 hitVec3d = Vec3.atCenterOf(hitPos).relative(facing, 0.5F);   // 放置面中心坐标
+        Vec3 hitVec3d = Vec3.atCenterOf(hitPos).relative(facing, 0.5F);   // Center of the placement face
         var hitResult = new BlockHitResult(hitVec3d, facing, blockPos, false);
         interactionManager.useItemOn(player, InteractionHand.MAIN_HAND, hitResult);
     }
@@ -223,14 +223,14 @@ public class InteractionUtils {
     }
 
     public static boolean canPlace(ClientLevel world, BlockPos blockPos, BlockState placeBlockState) {
-        // 目标位置的方块是否可以被替换
+        // Whether the block at the target position can be replaced
         if (!BlockUtils.isReplaceable(world.getBlockState(blockPos))) {
             return false;
         }
-        // 检查放置方块的碰撞体积
+        // Check the collision shape of the block being placed
         VoxelShape collisionShape = placeBlockState.getCollisionShape(world, blockPos);
         if (collisionShape.isEmpty()) {
-            return true; // 放置的方块是没有没有碰撞体积，可以放置
+            return true; // No collision — placement is allowed
         }
         for (Entity entity : world.entitiesForRendering()) {
             if (entity instanceof ItemEntity) {
