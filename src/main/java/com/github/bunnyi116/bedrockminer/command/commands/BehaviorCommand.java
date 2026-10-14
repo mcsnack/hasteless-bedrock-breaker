@@ -15,8 +15,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.Block;
 
 import static com.github.bunnyi116.bedrockminer.util.BlockUtils.*;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 public class BehaviorCommand extends CommandBase {
     @Override
