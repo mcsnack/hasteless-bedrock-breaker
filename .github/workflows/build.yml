@@ -19,10 +19,17 @@ jobs:
           java-version: '25'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       - name: Build
         run: ./gradlew build --no-daemon --stacktrace
+      - name: Install software graphics drivers
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dri libegl1 mesa-vulkan-drivers mesa-utils xvfb
       - name: Client startup and mixin audit
         timeout-minutes: 6
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 'true'
+          SDL_VIDEO_X11_FORCE_EGL: '1'
         run: python3 .github/scripts/smoke_client.py
       - name: Upload client logs
         if: always()
