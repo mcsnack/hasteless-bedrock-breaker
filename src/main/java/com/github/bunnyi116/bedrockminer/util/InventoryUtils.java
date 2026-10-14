@@ -5,7 +5,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -61,11 +61,11 @@ public class InventoryUtils {
             if (sourceSlot == hotbarIndex) {   // Same slot
                 return;
             }
-            interactionManager.handleInventoryMouseClick(
+            interactionManager.handleContainerInput(
                     player.containerMenu.containerId,   // Current container ID
                     sourceSlot,                          // Source slot index
                     hotbarIndex,                         // Target hotbar index (0-8)
-                    ClickType.SWAP,                      // Swap action
+                    ContainerInput.SWAP,                      // Swap action
                     player
             );
         }

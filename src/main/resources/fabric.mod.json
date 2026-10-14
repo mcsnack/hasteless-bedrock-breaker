@@ -9,8 +9,8 @@
 		"Nour"
 	],
 	"contact": {
-		"homepage": "https://github.com/bunnyi116/fabric-bedrock-miner",
-		"sources": "https://github.com/bunnyi116/fabric-bedrock-miner"
+		"homepage": "https://github.com/mcsnack/hasteless-bedrock-breaker",
+		"sources": "https://github.com/mcsnack/hasteless-bedrock-breaker"
 	},
 	"license": "AGPL-3.0",
 	"icon": "assets/bedrockminer/icon.png",
@@ -24,10 +24,10 @@
 		"bedrockminer.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.19.2",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
-		"fabric-api": "*"
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": ">=0.161.0"
 	},
 	"accessWidener": "bedrockminer.accesswidener"
 }
