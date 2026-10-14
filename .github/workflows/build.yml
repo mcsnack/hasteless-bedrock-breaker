@@ -21,6 +21,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Build
         run: ./gradlew build --no-daemon --stacktrace
+      - name: Client startup and mixin audit
+        timeout-minutes: 6
+        run: python3 .github/scripts/smoke_client.py
+      - name: Upload client logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-smoke-logs
+          path: |
+            build/client-smoke.log
+            run/logs/latest.log
       - name: Upload mod
         uses: actions/upload-artifact@v4
         with:

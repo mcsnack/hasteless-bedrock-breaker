@@ -2,6 +2,8 @@ package com.github.bunnyi116.bedrockminer;
 
 import com.github.bunnyi116.bedrockminer.command.CommandManager;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -36,6 +38,12 @@ public class BedrockMiner implements ModInitializer  {
         initGameVariable();
         CommandManager.register();
         Debug.alwaysWrite("Mod initialized successfully");
+        if (Boolean.getBoolean("bedrockminer.mixinAudit")) {
+            ClientLifecycleEvents.CLIENT_STARTED.register(minecraft -> {
+                MixinEnvironment.getCurrentEnvironment().audit();
+                LOGGER.info("Bedrock Miner mixin audit passed");
+            });
+        }
     }
 
     public static void initGameVariable() {

@@ -12,6 +12,13 @@ repositories {
 }
 
 loom {
+    runs {
+        client {
+            vmArg '-Dbedrockminer.mixinAudit=true'
+            vmArg '-Dmixin.debug.countInjections=true'
+        }
+    }
+
 	accessWidenerPath = file("src/main/resources/bedrockminer.accesswidener")
 
 	mods {
