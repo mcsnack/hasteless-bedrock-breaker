@@ -2,18 +2,12 @@ name: Builds
 
 on:
   push:
-    paths:
-      - "*.gradle"
-      - "gradle.properties"
-      - "src/**"
-      - "versions/**"
-      - "settings.json"
+    branches: [minecraft-26.3]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     uses: ./.github/workflows/build.yml
-    secrets: inherit
-#    # [FEATURE] MIXIN_AUDITOR
-#    with:
-#      mixin_audit: true

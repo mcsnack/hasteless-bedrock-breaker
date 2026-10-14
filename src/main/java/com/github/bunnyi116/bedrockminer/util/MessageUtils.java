@@ -6,10 +6,10 @@ import static com.github.bunnyi116.bedrockminer.BedrockMiner.client;
 
 public class MessageUtils {
     public static void setOverlayMessage(Component message) {
-        client.gui.setOverlayMessage(message, false);
+        client.gui.hud.setOverlayMessage(message, false);
     }
 
     public static void addMessage(Component message) {
-        client.gui.getChat().addMessage(message);
+        client.gui.hud.getChat().addClientSystemMessage(message);
     }
 }
