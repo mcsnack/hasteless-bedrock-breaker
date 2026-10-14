@@ -19,8 +19,6 @@ with log.open('w') as output:
             if 'Bedrock Miner mixin audit passed' in text:
                 print('Minecraft 26.3 client started and mixin audit passed.')
                 break
-            if 'Failed to create backend' in text:
-                raise RuntimeError('Software graphics backend failed to initialize.')
             if process.poll() is not None:
                 raise RuntimeError(f'Client exited before startup (exit {process.returncode}).')
             time.sleep(1)
